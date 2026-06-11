@@ -1,0 +1,9 @@
+[package]
+name = "oshima-tokio"
+version = "0.1.0"
+edition = "2021"
+description = "Tokio async runtime backend for Oshima"
+
+[dependencies]
+oshima-core = { path = "../oshima-core", features = ["std"] }
+tokio = { version = "1", features = ["rt", "sync", "macros", "rt-multi-thread"] }

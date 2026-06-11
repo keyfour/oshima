@@ -1,0 +1,5 @@
+[package]
+name = "oshima-macros"
+version = "0.1.0"
+edition = "2021"
+description = "Placeholder for future proc-macro support"

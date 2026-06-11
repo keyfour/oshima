@@ -1,0 +1,31 @@
+[workspace]
+members = [
+    "oshima-core",
+    "oshima-tokio",
+    "oshima-sync",
+    "oshima-macros",
+    ".",
+]
+resolver = "2"
+
+[package]
+name = "oshima"
+version = "0.1.0"
+edition = "2021"
+description = "Runtime-agnostic actor framework for Rust"
+
+[dependencies]
+oshima-core  = { path = "oshima-core" }
+oshima-tokio = { path = "oshima-tokio", optional = true }
+oshima-sync  = { path = "oshima-sync",  optional = true }
+
+[dev-dependencies]
+oshima-core  = { path = "oshima-core" }
+oshima-sync  = { path = "oshima-sync" }
+oshima-tokio = { path = "oshima-tokio" }
+tokio        = { version = "1", features = ["rt", "rt-multi-thread", "macros", "time"] }
+
+[features]
+default = []
+runtime-tokio = ["oshima-tokio"]
+runtime-sync  = ["oshima-sync"]

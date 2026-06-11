@@ -1,0 +1,8 @@
+[package]
+name = "oshima-sync"
+version = "0.1.0"
+edition = "2021"
+description = "Synchronous (thread-per-actor) runtime backend for Oshima"
+
+[dependencies]
+oshima-core = { path = "../oshima-core", features = ["std"] }
