@@ -1,8 +1,8 @@
-use oshima_core::traits::ActorContext;
-use tokio::sync::mpsc;
-use oshima_core::traits::{ActorBase, Actor, Running};
 use crate::addr::{TokioAddr, TokioEnvelope};
 use crate::context::TokioContext;
+use oshima_core::traits::ActorContext;
+use oshima_core::traits::{Actor, ActorBase, Running};
+use tokio::sync::mpsc;
 
 const DEFAULT_MAILBOX_SIZE: usize = 64;
 
@@ -29,7 +29,10 @@ impl TokioRuntime {
             while ctx.is_running() {
                 match rx.recv().await {
                     Some(envelope) => envelope.handle(&mut actor, &mut ctx),
-                    None => { ctx.set_stopping(); break; }
+                    None => {
+                        ctx.set_stopping();
+                        break;
+                    }
                 }
             }
 
@@ -38,7 +41,9 @@ impl TokioRuntime {
                 ctx = TokioContext::new();
                 while let Ok(envelope) = rx.try_recv() {
                     envelope.handle(&mut actor, &mut ctx);
-                    if !ctx.is_running() { break; }
+                    if !ctx.is_running() {
+                        break;
+                    }
                 }
                 actor.stopping(&mut ctx);
             }

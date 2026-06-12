@@ -1,8 +1,8 @@
-use std::sync::mpsc;
-use oshima_core::envelope::EnvelopeProxy;
-use oshima_core::traits::{ActorBase, Actor, ActorContext, Running};
 use crate::addr::SyncAddr;
 use crate::context::SyncContext;
+use oshima_core::envelope::EnvelopeProxy;
+use oshima_core::traits::{Actor, ActorBase, ActorContext, Running};
+use std::sync::mpsc;
 
 const DEFAULT_MAILBOX_SIZE: usize = 64;
 
@@ -22,7 +22,8 @@ impl SyncRuntime {
     where
         A: ActorBase + Actor<SyncContext<A>> + Send + 'static,
     {
-        let (tx, rx) = mpsc::sync_channel::<Box<dyn EnvelopeProxy<A, SyncContext<A>> + Send>>(capacity);
+        let (tx, rx) =
+            mpsc::sync_channel::<Box<dyn EnvelopeProxy<A, SyncContext<A>> + Send>>(capacity);
 
         std::thread::spawn(move || {
             let mut ctx = SyncContext::new();
@@ -34,7 +35,10 @@ impl SyncRuntime {
             while ctx.is_running() {
                 match rx.recv() {
                     Ok(envelope) => envelope.handle(&mut actor, &mut ctx),
-                    Err(_) => { ctx.set_stopping(); break; }
+                    Err(_) => {
+                        ctx.set_stopping();
+                        break;
+                    }
                 }
             }
 
@@ -44,7 +48,9 @@ impl SyncRuntime {
                 ctx = SyncContext::new();
                 while let Ok(envelope) = rx.try_recv() {
                     envelope.handle(&mut actor, &mut ctx);
-                    if !ctx.is_running() { break; }
+                    if !ctx.is_running() {
+                        break;
+                    }
                 }
                 actor.stopping(&mut ctx); // second call is final
             }

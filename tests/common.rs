@@ -15,7 +15,9 @@ pub struct Counter {
 }
 
 impl Counter {
-    pub fn new(v: u32) -> Self { Self { value: v } }
+    pub fn new(v: u32) -> Self {
+        Self { value: v }
+    }
 }
 
 // ActorBase satisfies the marker bound required by ActorContext<A>.
@@ -23,19 +25,29 @@ impl ActorBase for Counter {}
 
 // Messages
 pub struct Add(pub u32);
-impl Message for Add { type Result = u32; }
+impl Message for Add {
+    type Result = u32;
+}
 
 pub struct Sub(pub u32);
-impl Message for Sub { type Result = u32; }
+impl Message for Sub {
+    type Result = u32;
+}
 
 pub struct GetValue;
-impl Message for GetValue { type Result = u32; }
+impl Message for GetValue {
+    type Result = u32;
+}
 
 pub struct Reset;
-impl Message for Reset { type Result = (); }
+impl Message for Reset {
+    type Result = ();
+}
 
 pub struct StopSelf;
-impl Message for StopSelf { type Result = (); }
+impl Message for StopSelf {
+    type Result = ();
+}
 
 // Actor impl — generic over C, so the same impl works for every backend.
 impl<C: ActorContext<Self>> Actor<C> for Counter {
@@ -58,15 +70,21 @@ impl<C: ActorContext<Self>> Handler<C, Sub> for Counter {
 }
 
 impl<C: ActorContext<Self>> Handler<C, GetValue> for Counter {
-    fn handle(&mut self, _msg: GetValue, _ctx: &mut C) -> u32 { self.value }
+    fn handle(&mut self, _msg: GetValue, _ctx: &mut C) -> u32 {
+        self.value
+    }
 }
 
 impl<C: ActorContext<Self>> Handler<C, Reset> for Counter {
-    fn handle(&mut self, _msg: Reset, _ctx: &mut C) { self.value = 0; }
+    fn handle(&mut self, _msg: Reset, _ctx: &mut C) {
+        self.value = 0;
+    }
 }
 
 impl<C: ActorContext<Self>> Handler<C, StopSelf> for Counter {
-    fn handle(&mut self, _msg: StopSelf, ctx: &mut C) { ctx.stop(); }
+    fn handle(&mut self, _msg: StopSelf, ctx: &mut C) {
+        ctx.stop();
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -77,31 +95,43 @@ pub struct Echo;
 impl ActorBase for Echo {}
 
 pub struct EchoMsg(pub String);
-impl Message for EchoMsg { type Result = String; }
+impl Message for EchoMsg {
+    type Result = String;
+}
 
 impl<C: ActorContext<Self>> Actor<C> for Echo {}
 
 impl<C: ActorContext<Self>> Handler<C, EchoMsg> for Echo {
-    fn handle(&mut self, msg: EchoMsg, _ctx: &mut C) -> String { msg.0 }
+    fn handle(&mut self, msg: EchoMsg, _ctx: &mut C) -> String {
+        msg.0
+    }
 }
 
 // ---------------------------------------------------------------------------
 // Accumulator actor — collects values, returns all on Flush
 // ---------------------------------------------------------------------------
 
-pub struct Accumulator { pub items: Vec<u32> }
+pub struct Accumulator {
+    pub items: Vec<u32>,
+}
 impl ActorBase for Accumulator {}
 
 pub struct Push(pub u32);
-impl Message for Push  { type Result = (); }
+impl Message for Push {
+    type Result = ();
+}
 
 pub struct Flush;
-impl Message for Flush { type Result = Vec<u32>; }
+impl Message for Flush {
+    type Result = Vec<u32>;
+}
 
 impl<C: ActorContext<Self>> Actor<C> for Accumulator {}
 
 impl<C: ActorContext<Self>> Handler<C, Push> for Accumulator {
-    fn handle(&mut self, msg: Push, _ctx: &mut C) { self.items.push(msg.0); }
+    fn handle(&mut self, msg: Push, _ctx: &mut C) {
+        self.items.push(msg.0);
+    }
 }
 
 impl<C: ActorContext<Self>> Handler<C, Flush> for Accumulator {

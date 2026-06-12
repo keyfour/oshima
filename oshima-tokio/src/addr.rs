@@ -1,7 +1,7 @@
-use tokio::sync::{mpsc, oneshot};
-use oshima_core::error::SendError;
-use oshima_core::traits::{ActorBase, Actor, Handler, Message};
 use crate::context::TokioContext;
+use oshima_core::error::SendError;
+use oshima_core::traits::{Actor, ActorBase, Handler, Message};
+use tokio::sync::{mpsc, oneshot};
 
 pub(crate) trait TokioEnvelope<A>: Send
 where
@@ -29,7 +29,9 @@ where
     fn handle(mut self: Box<Self>, actor: &mut A, ctx: &mut TokioContext<A>) {
         if let Some(msg) = self.msg.take() {
             let result = actor.handle(msg, ctx);
-            if let Some(tx) = self.tx.take() { let _ = tx.send(result); }
+            if let Some(tx) = self.tx.take() {
+                let _ = tx.send(result);
+            }
         }
     }
 }
@@ -45,7 +47,11 @@ impl<A> Clone for TokioAddr<A>
 where
     A: ActorBase + Actor<TokioContext<A>> + Send,
 {
-    fn clone(&self) -> Self { Self { tx: self.tx.clone() } }
+    fn clone(&self) -> Self {
+        Self {
+            tx: self.tx.clone(),
+        }
+    }
 }
 
 impl<A> TokioAddr<A>
@@ -65,7 +71,10 @@ where
             tx: Some(reply_tx),
             _actor: std::marker::PhantomData,
         });
-        self.tx.send(envelope).await.map_err(|_| SendError::ActorStopped)?;
+        self.tx
+            .send(envelope)
+            .await
+            .map_err(|_| SendError::ActorStopped)?;
         reply_rx.await.map_err(|_| SendError::ActorStopped)
     }
 
@@ -81,7 +90,10 @@ where
             tx: None,
             _actor: std::marker::PhantomData,
         });
-        self.tx.send(envelope).await.map_err(|_| SendError::ActorStopped)?;
+        self.tx
+            .send(envelope)
+            .await
+            .map_err(|_| SendError::ActorStopped)?;
         Ok(())
     }
 
@@ -98,7 +110,7 @@ where
             _actor: std::marker::PhantomData,
         });
         self.tx.try_send(envelope).map_err(|e| match e {
-            mpsc::error::TrySendError::Full(_)   => SendError::MailboxFull,
+            mpsc::error::TrySendError::Full(_) => SendError::MailboxFull,
             mpsc::error::TrySendError::Closed(_) => SendError::ActorStopped,
         })
     }

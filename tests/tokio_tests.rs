@@ -20,8 +20,8 @@ async fn tokio_counter_sequential_messages() {
     let addr = TokioRuntime::spawn(Counter::new(0));
 
     assert_eq!(addr.send(Add(10)).await.unwrap(), 10);
-    assert_eq!(addr.send(Add(5)).await.unwrap(),  15);
-    assert_eq!(addr.send(Sub(3)).await.unwrap(),  12);
+    assert_eq!(addr.send(Add(5)).await.unwrap(), 15);
+    assert_eq!(addr.send(Sub(3)).await.unwrap(), 12);
     assert_eq!(addr.send(GetValue).await.unwrap(), 12);
 }
 
@@ -135,14 +135,18 @@ async fn tokio_accumulator_batch_and_flush() {
 async fn tokio_concurrent_senders() {
     let addr = TokioRuntime::spawn(Counter::new(0));
 
-    let handles: Vec<_> = (0..10).map(|_| {
-        let a = addr.clone();
-        tokio::spawn(async move {
-            a.send(Add(1)).await.unwrap();
+    let handles: Vec<_> = (0..10)
+        .map(|_| {
+            let a = addr.clone();
+            tokio::spawn(async move {
+                a.send(Add(1)).await.unwrap();
+            })
         })
-    }).collect();
+        .collect();
 
-    for h in handles { h.await.unwrap(); }
+    for h in handles {
+        h.await.unwrap();
+    }
 
     let total = addr.send(GetValue).await.unwrap();
     assert_eq!(total, 10);

@@ -20,6 +20,6 @@ pub use runtime::SyncRuntime;
 
 /// Re-export core prelude alongside sync-specific types for convenience.
 pub mod prelude {
-    pub use oshima_core::prelude::*;
     pub use crate::{SyncAddr, SyncContext, SyncRuntime};
+    pub use oshima_core::prelude::*;
 }

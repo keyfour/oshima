@@ -9,18 +9,13 @@
 
 /// Describes whether an actor wishes to keep running after its `stopping`
 /// lifecycle hook is called.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub enum Running {
     /// The actor should continue running.
     Continue,
     /// The actor should stop after the current message.
+    #[default]
     Stop,
-}
-
-impl Default for Running {
-    fn default() -> Self {
-        Running::Stop
-    }
 }
 
 // ---------------------------------------------------------------------------

@@ -1,15 +1,19 @@
-use std::sync::mpsc::{self, SyncSender};
+use crate::context::SyncContext;
 use oshima_core::envelope::{Envelope, EnvelopeProxy};
 use oshima_core::error::SendError;
-use oshima_core::traits::{ActorBase, Actor, Handler, Message};
-use crate::context::SyncContext;
+use oshima_core::traits::{Actor, ActorBase, Handler, Message};
+use std::sync::mpsc::{self, SyncSender};
 
 pub struct SyncAddr<A: ActorBase + Actor<SyncContext<A>> + Send> {
     pub(crate) tx: SyncSender<Box<dyn EnvelopeProxy<A, SyncContext<A>> + Send>>,
 }
 
 impl<A: ActorBase + Actor<SyncContext<A>> + Send> Clone for SyncAddr<A> {
-    fn clone(&self) -> Self { Self { tx: self.tx.clone() } }
+    fn clone(&self) -> Self {
+        Self {
+            tx: self.tx.clone(),
+        }
+    }
 }
 
 impl<A: ActorBase + Actor<SyncContext<A>> + Send> SyncAddr<A> {
@@ -21,10 +25,10 @@ impl<A: ActorBase + Actor<SyncContext<A>> + Send> SyncAddr<A> {
         M::Result: Send + 'static,
     {
         let (reply_tx, reply_rx) = mpsc::sync_channel(1);
-        let envelope = Box::new(
-            Envelope::<A, SyncContext<A>, M>::with_reply(msg, reply_tx)
-        );
-        self.tx.send(envelope).map_err(|_| SendError::ActorStopped)?;
+        let envelope = Box::new(Envelope::<A, SyncContext<A>, M>::with_reply(msg, reply_tx));
+        self.tx
+            .send(envelope)
+            .map_err(|_| SendError::ActorStopped)?;
         reply_rx.recv().map_err(|_| SendError::ActorStopped)
     }
 
@@ -37,7 +41,7 @@ impl<A: ActorBase + Actor<SyncContext<A>> + Send> SyncAddr<A> {
     {
         let envelope = Box::new(Envelope::<A, SyncContext<A>, M>::new(msg));
         self.tx.try_send(envelope).map_err(|e| match e {
-            mpsc::TrySendError::Full(_)         => SendError::MailboxFull,
+            mpsc::TrySendError::Full(_) => SendError::MailboxFull,
             mpsc::TrySendError::Disconnected(_) => SendError::ActorStopped,
         })
     }

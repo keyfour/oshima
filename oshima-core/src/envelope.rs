@@ -48,12 +48,20 @@ where
 {
     /// Wrap a message without a reply channel (fire-and-forget).
     pub fn new(msg: M) -> Self {
-        Self { msg: Some(msg), tx: None, _phantom: core::marker::PhantomData }
+        Self {
+            msg: Some(msg),
+            tx: None,
+            _phantom: core::marker::PhantomData,
+        }
     }
 
     /// Wrap a message with a reply channel so the sender can wait for the result.
     pub fn with_reply(msg: M, tx: std::sync::mpsc::SyncSender<M::Result>) -> Self {
-        Self { msg: Some(msg), tx: Some(tx), _phantom: core::marker::PhantomData }
+        Self {
+            msg: Some(msg),
+            tx: Some(tx),
+            _phantom: core::marker::PhantomData,
+        }
     }
 }
 
@@ -68,7 +76,9 @@ where
     fn handle(mut self: Box<Self>, actor: &mut A, ctx: &mut C) {
         if let Some(msg) = self.msg.take() {
             let result = actor.handle(msg, ctx);
-            if let Some(tx) = self.tx.take() { let _ = tx.send(result); }
+            if let Some(tx) = self.tx.take() {
+                let _ = tx.send(result);
+            }
         }
     }
 }

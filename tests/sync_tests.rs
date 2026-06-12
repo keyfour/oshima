@@ -20,8 +20,8 @@ fn sync_counter_sequential_messages() {
     let addr = SyncRuntime::spawn(Counter::new(0));
 
     assert_eq!(addr.send(Add(10)).unwrap(), 10);
-    assert_eq!(addr.send(Add(5)).unwrap(),  15);
-    assert_eq!(addr.send(Sub(3)).unwrap(),  12);
+    assert_eq!(addr.send(Add(5)).unwrap(), 15);
+    assert_eq!(addr.send(Sub(3)).unwrap(), 12);
     assert_eq!(addr.send(GetValue).unwrap(), 12);
 }
 
@@ -141,14 +141,18 @@ fn sync_concurrent_senders() {
 
     let addr = SyncRuntime::spawn(Counter::new(0));
 
-    let handles: Vec<_> = (0..10).map(|_| {
-        let a = addr.clone();
-        thread::spawn(move || {
-            a.send(Add(1)).unwrap();
+    let handles: Vec<_> = (0..10)
+        .map(|_| {
+            let a = addr.clone();
+            thread::spawn(move || {
+                a.send(Add(1)).unwrap();
+            })
         })
-    }).collect();
+        .collect();
 
-    for h in handles { h.join().unwrap(); }
+    for h in handles {
+        h.join().unwrap();
+    }
 
     let total = addr.send(GetValue).unwrap();
     assert_eq!(total, 10, "all 10 increments must be reflected");

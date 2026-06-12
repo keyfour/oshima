@@ -16,6 +16,6 @@ pub use traits::{Actor, ActorBase, ActorContext, Handler, Message, Running};
 
 /// Convenience re-export of everything needed to write actors.
 pub mod prelude {
-    pub use crate::traits::{Actor, ActorBase, ActorContext, Handler, Message, Running};
     pub use crate::error::SendError;
+    pub use crate::traits::{Actor, ActorBase, ActorContext, Handler, Message, Running};
 }
