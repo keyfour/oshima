@@ -157,3 +157,125 @@ fn sync_concurrent_senders() {
     let total = addr.send(GetValue).unwrap();
     assert_eq!(total, 10, "all 10 increments must be reflected");
 }
+
+// ---------------------------------------------------------------------------
+// Error paths — exact SendError variants
+// ---------------------------------------------------------------------------
+
+#[test]
+fn sync_send_to_stopped_actor_returns_actor_stopped() {
+    let addr = SyncRuntime::spawn(Counter::new(0));
+    addr.send(StopSelf).unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(50));
+
+    let err = addr.send(GetValue).unwrap_err();
+    assert_eq!(err, SendError::ActorStopped);
+}
+
+#[test]
+fn sync_do_send_to_stopped_actor_returns_actor_stopped() {
+    let addr = SyncRuntime::spawn(Counter::new(0));
+    addr.send(StopSelf).unwrap();
+
+    std::thread::sleep(std::time::Duration::from_millis(50));
+
+    let err = addr.do_send(Add(1)).unwrap_err();
+    assert_eq!(err, SendError::ActorStopped);
+}
+
+// ---------------------------------------------------------------------------
+// Mailbox full — do_send on a bounded mailbox returns MailboxFull and the
+// rejected message must never be processed
+// ---------------------------------------------------------------------------
+
+#[test]
+fn sync_do_send_full_mailbox_returns_mailbox_full() {
+    let (actor, gate) = GatedCounter::new(0);
+    let addr = SyncRuntime::spawn_with_capacity(actor, 1);
+
+    // First send: the actor picks it up and blocks inside the handler.
+    addr.do_send(GatedAdd(1))
+        .expect("send must fit the empty mailbox");
+
+    // Wait until the actor is blocked inside the first message handler,
+    // so the mailbox (capacity 1) can be filled deterministically.
+    while !gate.entered.load(std::sync::atomic::Ordering::SeqCst) {
+        std::thread::sleep(std::time::Duration::from_millis(1));
+    }
+
+    addr.do_send(GatedAdd(10))
+        .expect("second send must fit capacity 1");
+
+    let err = addr.do_send(GatedAdd(100)).unwrap_err();
+    assert_eq!(err, SendError::MailboxFull);
+
+    // Unblock the actor; Add(1) + Add(10) must be processed, the rejected
+    // Add(100) must not.
+    gate.release
+        .store(true, std::sync::atomic::Ordering::SeqCst);
+    assert_eq!(addr.send(GetValue).unwrap(), 11);
+}
+
+// ---------------------------------------------------------------------------
+// Lifecycle hooks
+// ---------------------------------------------------------------------------
+
+#[test]
+fn sync_lifecycle_hooks_run_on_self_stop() {
+    let log = LifecycleLog::new();
+    let addr = SyncRuntime::spawn(LifecycleActor { log: log.clone() });
+
+    addr.send(StopSelf).unwrap();
+    log.wait_stopped();
+
+    let (started, stopping, stopped, vetoes) = log.counts();
+    assert_eq!((started, stopping, stopped, vetoes), (1, 1, 1, 0));
+}
+
+#[test]
+fn sync_all_senders_dropped_stops_actor_gracefully() {
+    let log = LifecycleLog::new();
+    let addr = SyncRuntime::spawn(LifecycleActor { log: log.clone() });
+
+    // Dropping the last sender disconnects the mailbox — the runtime must
+    // shut the actor down through the full lifecycle.
+    drop(addr);
+    log.wait_stopped();
+
+    let (started, stopping, stopped, vetoes) = log.counts();
+    assert_eq!((started, stopping, stopped, vetoes), (1, 1, 1, 0));
+}
+
+#[test]
+fn sync_stopping_veto_resumes_then_stops() {
+    let log = LifecycleLog::new();
+    let addr = SyncRuntime::spawn(VetoCounter::new(log.clone()));
+
+    addr.send(StopSelf).unwrap();
+    log.wait_stopped();
+
+    let (started, stopping, stopped, vetoes) = log.counts();
+    assert_eq!(started, 1);
+    assert_eq!(vetoes, 1, "the first stopping() must veto the shutdown");
+    assert_eq!(stopping, 2, "stopping() must be re-run after the veto");
+    assert_eq!(stopped, 1, "stopped() must run exactly once");
+}
+
+// ---------------------------------------------------------------------------
+// Panic resilience — a panicking handler must not wedge the runtime; later
+// sends observe a disconnected mailbox (ActorStopped)
+// ---------------------------------------------------------------------------
+
+#[test]
+fn sync_handler_panic_reports_actor_stopped() {
+    let addr = SyncRuntime::spawn(PanicActor);
+
+    addr.do_send(PanicNow).unwrap();
+
+    // Give the thread time to unwind
+    std::thread::sleep(std::time::Duration::from_millis(100));
+
+    let err = addr.do_send(PanicNow).unwrap_err();
+    assert_eq!(err, SendError::ActorStopped);
+}
